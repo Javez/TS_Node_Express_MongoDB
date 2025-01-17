@@ -14,7 +14,11 @@ declare global {
   }
 }
 
-async function authMiddleware(req: RequestWithUser, res: Response, next: NextFunction) {
+async function authMiddleware(
+  req: RequestWithUser,
+  res: Response,
+  next: NextFunction
+) {
   const cookies = req.cookies;
   if (cookies && cookies.Authorization) {
     const secret = process.env.JWT_SECRET;
@@ -34,6 +38,8 @@ async function authMiddleware(req: RequestWithUser, res: Response, next: NextFun
     } catch (err) {
       next(new WrongAuthenticationTokenExeption());
     }
+  } else {
+    next(new AuthenticationTokenMissingExeption());
   }
 }
 

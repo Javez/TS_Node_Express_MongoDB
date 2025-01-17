@@ -5,11 +5,16 @@ import PostNotFoundExeption from "../../exceptions/Posts/PostNotFound.exeption";
 import validationMiddleware from "../../middleware/validation.middleware";
 import CreatePostDTO from "../../dto/posts/posts.dto";
 import authMiddleware from "../../middleware/auth.middleware";
-import { MiddlewareOptions } from "mongoose";
+import { MiddlewareOptions, Types } from "mongoose";
+import { userModel } from "../../model/users/user.model";
+import UserNotFound from "../../exceptions/Users/UserNotFound.exeption";
+import RequestWithUser from "../../jwt/requestWithUser.interface";
 
 class PostController implements Controller {
   public readonly path = "/posts";
   public readonly router = Router();
+  private post = postModel;
+  private user = userModel;
 
   constructor() {
     this.initializeRoutes();
@@ -51,12 +56,27 @@ class PostController implements Controller {
     })
   }*/
 
-  public addNewPost = async (req: Request, res: Response) => {
-    const postData: CreatePostDTO = req.body;
-    const createdPost = new postModel({ ...postData, authorId: req.user?._id });
-    const savedPost = await createdPost.save();
-    const result = await savedPost.populate("author", "-password");
-    res.send(result);
+  public addNewPost = async (
+    request: RequestWithUser,
+    response: Response,
+    next: NextFunction
+  ) => {
+    const postData: CreatePostDTO = request.body;
+    const createdPost = new this.post({
+      ...postData,
+      authors: [request.user._id],
+    });
+    const user = await this.user.findById(request.user._id);
+    if (user) {
+      const posts = user.posts;
+      if (posts) {
+        user.posts = [...(user.posts || []), createdPost._id] as Types.ObjectId[];
+        await user.save();
+        const savedPost = await createdPost.save();
+        await savedPost.populate("authors", "-password");
+        response.send(savedPost);
+      }
+    } else next(new UserNotFound());
   };
 
   //{new} return updated file not a old one
