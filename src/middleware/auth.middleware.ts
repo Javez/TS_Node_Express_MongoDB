@@ -9,12 +9,12 @@ import AuthenticationTokenMissingExeption from "../exceptions/Auth/Authenticatio
 declare global {
   namespace Express {
     export interface Request {
-      user?: IUser;
+      user: IUser;
     }
   }
 }
 
-async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+async function authMiddleware(req: RequestWithUser, res: Response, next: NextFunction) {
   const cookies = req.cookies;
   if (cookies && cookies.Authorization) {
     const secret = process.env.JWT_SECRET;
